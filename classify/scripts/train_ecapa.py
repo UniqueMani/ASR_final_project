@@ -46,6 +46,10 @@ class LanguageIdBrain(sb.Brain):
         # Classification
         outputs = self.modules.classifier(embeddings)
 
+        # Ensure outputs has correct shape [batch_size, num_classes]
+        if outputs.dim() == 1:
+            outputs = outputs.unsqueeze(0)
+
         return outputs, embeddings
 
     def compute_objectives(self, predictions, batch, stage):
@@ -53,8 +57,23 @@ class LanguageIdBrain(sb.Brain):
         outputs, embeddings = predictions
         lang_ids, _ = batch.lang_id_encoded
 
+        # Flatten lang_ids to 1D tensor [batch_size] and ensure it's long type
+        if lang_ids.dim() > 1:
+            lang_ids = lang_ids.view(-1)
+        lang_ids = lang_ids.long()
+
+        # Debug: print shapes on first batch
+        if not hasattr(self, '_debug_printed'):
+            print(f"DEBUG - outputs shape: {outputs.shape}, dtype: {outputs.dtype}")
+            print(f"DEBUG - lang_ids shape: {lang_ids.shape}, dtype: {lang_ids.dtype}")
+            print(f"DEBUG - outputs sample: {outputs[0]}")
+            print(f"DEBUG - lang_ids sample: {lang_ids[:5]}")
+            self._debug_printed = True
+
         # Compute classification loss
-        loss = self.hparams.compute_cost(outputs, lang_ids)
+        # CrossEntropyLoss expects: input [batch_size, num_classes], target [batch_size]
+        loss_fn = torch.nn.CrossEntropyLoss()
+        loss = loss_fn(outputs, lang_ids)
 
         if stage != sb.Stage.TRAIN:
             # Compute accuracy
@@ -158,7 +177,10 @@ def create_datasets(data_folder, hparams):
         @sb.utils.data_pipeline.takes("wav")
         @sb.utils.data_pipeline.provides("sig")
         def audio_pipeline(wav):
-            sig = sb.dataio.dataio.read_audio(wav)
+            # Use soundfile directly to avoid torchaudio backend issues
+            import soundfile as sf
+            audio_data, sample_rate = sf.read(wav)
+            sig = torch.from_numpy(audio_data).float()
             return sig
 
         # Add label pipeline
@@ -166,7 +188,11 @@ def create_datasets(data_folder, hparams):
         @sb.utils.data_pipeline.provides("lang_id", "lang_id_encoded")
         def label_pipeline(lang_id):
             yield lang_id
+            # Encode label and ensure it's a tensor with shape [1]
             lang_id_encoded = label_encoder.encode_label_torch(lang_id)
+            # Ensure it has shape [1] for proper batching
+            if lang_id_encoded.dim() == 0:
+                lang_id_encoded = lang_id_encoded.unsqueeze(0)
             yield lang_id_encoded
 
         dataset.add_dynamic_item(audio_pipeline)

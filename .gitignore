@@ -4,6 +4,6 @@ SHALCAS22A/
 xbmu_amdo31/
 classify/data/
 classify/models/
-classify/README.md
 classify/requirements.txt
 classify/results/
+.gitignore
