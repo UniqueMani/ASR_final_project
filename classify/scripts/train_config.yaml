@@ -1,0 +1,105 @@
+# ECAPA-TDNN Language Recognition Training Configuration
+
+# Seed Settings
+seed: 1234
+__set_seed: !apply:torch.manual_seed [!ref <seed>]
+
+# Data Path
+data_folder: ../data/processed
+output_folder: ../models/ecapa_lang_id
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# Training Parameters
+number_of_epochs: 30
+batch_size: 32
+lr: 0.001
+sample_rate: 16000
+
+# Feature Parameters
+n_mels: 80
+
+# Model Parameters
+embedding_dim: 192
+num_classes: 3  # mandarin, tibetan, uyghur
+
+# Data Loaders
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: True
+    num_workers: 0
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: False
+    num_workers: 0
+
+test_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: False
+    num_workers: 0
+
+# Feature Extraction
+compute_features: !new:speechbrain.lobes.features.Fbank
+    n_mels: !ref <n_mels>
+
+mean_var_norm: !new:speechbrain.processing.features.InputNormalization
+    norm_type: sentence
+
+# ECAPA-TDNN Model
+embedding_model: !new:speechbrain.lobes.models.ECAPA_TDNN.ECAPA_TDNN
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    attention_channels: 128
+    lin_neurons: !ref <embedding_dim>
+
+# Classifier
+classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    input_size: !ref <embedding_dim>
+    out_neurons: !ref <num_classes>
+
+# Loss Function
+compute_cost: !new:speechbrain.nnet.losses.LogSoftmaxWrapper
+    loss_fn: !new:torch.nn.NLLLoss
+
+# Optimizer
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+
+# Learning Rate Scheduler
+lr_annealing: !new:speechbrain.nnet.schedulers.NewBobScheduler
+    initial_value: !ref <lr>
+    improvement_threshold: 0.0025
+    annealing_factor: 0.8
+    patient: 0
+
+# Training Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+# Error Statistics
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+# Epoch Counter
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# Modules
+modules:
+    compute_features: !ref <compute_features>
+    mean_var_norm: !ref <mean_var_norm>
+    embedding_model: !ref <embedding_model>
+    classifier: !ref <classifier>
+
+# Checkpointer
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        embedding_model: !ref <embedding_model>
+        classifier: !ref <classifier>
+        normalizer: !ref <mean_var_norm>
+        counter: !ref <epoch_counter>
