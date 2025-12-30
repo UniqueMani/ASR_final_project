@@ -47,7 +47,10 @@ class LanguageIdBrain(sb.Brain):
         outputs = self.modules.classifier(embeddings)
 
         # Ensure outputs has correct shape [batch_size, num_classes]
-        if outputs.dim() == 1:
+        # Remove extra dimension if present (e.g., [32, 1, 3] -> [32, 3])
+        if outputs.dim() == 3 and outputs.size(1) == 1:
+            outputs = outputs.squeeze(1)
+        elif outputs.dim() == 1:
             outputs = outputs.unsqueeze(0)
 
         return outputs, embeddings
