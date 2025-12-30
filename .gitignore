@@ -1,9 +1,0 @@
-data_thuyg20/
-.venv
-SHALCAS22A/
-xbmu_amdo31/
-classify/data/
-classify/models/
-classify/requirements.txt
-classify/results/
-.gitignore
