@@ -1,0 +1,3 @@
+# Optional: real ASR baseline (no fine-tuning)
+faster-whisper==1.1.0
+ctranslate2==4.5.0
