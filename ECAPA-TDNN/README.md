@@ -7,26 +7,29 @@
 ```
 classify/
 ├── data/
-│   └── processed/          # 处理后的数据
-│       ├── train/          # 训练集
-│       │   ├── mandarin/   # 普通话
-│       │   ├── tibetan/    # 藏语
-│       │   └── uyghur/     # 维吾尔语
-│       └── test/           # 测试集
+│   └── processed/                # 处理后的数据
+│       ├── train/                # 训练集
+│       │   ├── mandarin/         # 普通话
+│       │   ├── tibetan/          # 藏语
+│       │   └── uyghur/           # 维吾尔语
+│       └── test/                 # 测试集
 │           ├── mandarin/
 │           ├── tibetan/
 │           └── uyghur/
-├── models/                 # 训练好的模型
+├── models/                       # 训练好的模型
 │   └── ecapa_lang_id/
-├── results/                # 可视化结果
-├── scripts/                # 脚本文件
-│   ├── preprocess_data.py  # 数据预处理
-│   ├── train_ecapa.py      # 模型训练
-│   ├── train_config.yaml   # 训练配置
-│   ├── visualize_tsne.py   # t-SNE 可视化
-│   ├── inference.py        # 推理脚本
-│   └── run_all.py          # 主运行脚本
-└── requirements.txt        # 依赖包
+├── results/                      # 可视化结果
+├── scripts/                      # 脚本文件
+│   ├── analyze_audio_quality.py  # 数据集分析
+│   ├── evaluate_test.py          # 评估预测
+│   ├── preprocess_data.py        # 数据预处理
+│   ├── train_ecapa.py            # 模型训练
+│   ├── train_config.yaml         # 训练配置
+│   ├── visualize_tsne.py         # t-SNE 可视化
+│   ├── inference.py              # 推理脚本
+│   └── run_all.py                # 主运行脚本
+└── requirements.txt              # 依赖包
+└── README.md
 ```
 
 ## 数据集
@@ -163,6 +166,3 @@ t-SNE 可视化展示了三种语种在 embedding 空间中的分布：
 - SpeechBrain: https://speechbrain.github.io/
 - ECAPA-TDNN: Desplanques et al., "ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation in TDNN Based Speaker Verification"
 
-## 作者
-
-语音识别课程项目
