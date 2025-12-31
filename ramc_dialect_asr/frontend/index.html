@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dialect + Real-time Subtitle MVP</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Real-time Subtitles + Offline Final Text (MVP)</h1>
+
+    <div class="card">
+      <div class="row">
+        <label>Select a WAV file (dataset sample recommended)
+          <input id="file" type="file" accept=".wav" />
+        </label>
+      </div>
+
+      <div class="row grid">
+        <label>chunk_sec
+          <input id="chunkSec" type="number" step="0.5" value="4.0">
+        </label>
+        <label>overlap_sec
+          <input id="overlapSec" type="number" step="0.5" value="1.0">
+        </label>
+        <label style="flex-direction:row;align-items:center;gap:10px">
+          <input id="simulate" type="checkbox" checked> Simulate real-time (stream output)
+        </label>
+      </div>
+
+      <div class="row buttons">
+        <button id="btnStream">Start Streaming</button>
+        <button id="btnOffline">Offline Only</button>
+        <button id="btnClear" class="ghost">Clear</button>
+      </div>
+
+      <div class="small">
+        Current ASR engine: <code id="engine">unknown</code>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Streaming Subtitles</h2>
+        <div class="kvs">
+          <div><span class="k">Dialect</span><span id="dialect" class="v">-</span></div>
+          <div><span class="k">Confidence</span><span id="conf" class="v">-</span></div>
+          <div><span class="k">Time</span><span id="time" class="v">-</span></div>
+        </div>
+        <div class="subtitle">
+          <div class="committed" id="committed"></div>
+          <div class="partial" id="partial"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Final Text (Offline)</h2>
+        <pre id="final" class="final"></pre>
+      </div>
+    </div>
+
+    <div class="footer">
+      Tip: the default mock ASR is for demonstrating the streaming UX (needs a manifest to show ground truth).
+      For real ASR, enable the whisper baseline.
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
