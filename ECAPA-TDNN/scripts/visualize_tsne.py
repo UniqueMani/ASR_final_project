@@ -3,7 +3,11 @@ t-SNE Visualization Script
 Extract embeddings from test set and plot t-SNE dimensionality reduction visualization
 """
 
+# IMPORTANT: Set environment variables BEFORE importing any audio libraries
 import os
+os.environ['TORCHAUDIO_BACKEND'] = 'soundfile'
+os.environ['TORCHAUDIO_USE_BACKEND_DISPATCHER'] = '1'
+
 import torch
 import torchaudio
 
@@ -13,9 +17,9 @@ if not hasattr(torchaudio, 'list_audio_backends'):
         return ["soundfile"]
     torchaudio.list_audio_backends = list_audio_backends
 
-# Set soundfile as default backend to avoid FFmpeg dependency
-import os as _os
-_os.environ.setdefault('TORCHAUDIO_BACKEND', 'soundfile')
+# Force set soundfile backend (for older versions)
+if hasattr(torchaudio, 'set_audio_backend'):
+    torchaudio.set_audio_backend("soundfile")
 
 import numpy as np
 from pathlib import Path
@@ -63,9 +67,27 @@ class EmbeddingExtractor:
 
     def extract_embedding(self, audio_path):
         """Extract embedding from a single audio file"""
-        # Load audio
-        signal = sb.dataio.dataio.read_audio(audio_path)
-        signal = signal.unsqueeze(0).to(self.device)
+        # Load audio using soundfile directly to avoid torchcodec
+        try:
+            import soundfile as sf
+            signal, sr = sf.read(audio_path)
+            signal = torch.FloatTensor(signal).unsqueeze(0)
+        except ImportError:
+            # If soundfile not available, try torchaudio with soundfile backend
+            try:
+                signal, sr = torchaudio.load(audio_path, backend="soundfile")
+            except:
+                # Final fallback to SpeechBrain's read_audio
+                signal = sb.dataio.dataio.read_audio(audio_path)
+                signal = signal.unsqueeze(0)
+
+        # Ensure mono channel
+        if signal.dim() > 1 and signal.shape[0] > 1:
+            signal = torch.mean(signal, dim=0, keepdim=True)
+        elif signal.dim() == 1:
+            signal = signal.unsqueeze(0)
+
+        signal = signal.to(self.device)
 
         with torch.no_grad():
             # Extract features
@@ -107,7 +129,7 @@ def plot_tsne(embeddings, labels, output_path):
     print("\nPerforming t-SNE dimensionality reduction...")
 
     # t-SNE dimensionality reduction
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_iter=1000)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=1000)
     embeddings_2d = tsne.fit_transform(embeddings)
 
     # Prepare plot
@@ -160,7 +182,7 @@ def plot_tsne_with_density(embeddings, labels, output_path):
     print("\nPerforming t-SNE dimensionality reduction (density version)...")
 
     # t-SNE dimensionality reduction
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_iter=1000)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=1000)
     embeddings_2d = tsne.fit_transform(embeddings)
 
     # Create subplots
@@ -235,17 +257,31 @@ def main():
     config_path = './train_config.yaml'
     data_folder = '../data/processed'
     output_path = '../results/tsne_visualization.png'
+    cache_path = '../results/embeddings_cache.npz'
 
     # Create output directory
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Initialize extractor
-    print("Loading model...")
-    extractor = EmbeddingExtractor(model_path, config_path)
+    # Try to load cached embeddings
+    if os.path.exists(cache_path):
+        print(f"Loading cached embeddings from {cache_path}...")
+        cache_data = np.load(cache_path, allow_pickle=True)
+        embeddings = cache_data['embeddings']
+        labels = cache_data['labels'].tolist()
+        print("Cached embeddings loaded successfully!")
+    else:
+        # Initialize extractor
+        print("Loading model...")
+        extractor = EmbeddingExtractor(model_path, config_path)
 
-    # Extract embeddings
-    print("\nCollecting test set embeddings...")
-    embeddings, labels = collect_embeddings(data_folder, extractor)
+        # Extract embeddings
+        print("\nCollecting test set embeddings...")
+        embeddings, labels = collect_embeddings(data_folder, extractor)
+
+        # Save embeddings to cache
+        print(f"\nSaving embeddings to cache: {cache_path}")
+        np.savez(cache_path, embeddings=embeddings, labels=np.array(labels))
+        print("Cache saved successfully!")
 
     print(f"\nExtraction complete!")
     print(f"Total samples: {len(embeddings)}")
@@ -263,6 +299,8 @@ def main():
     plot_tsne_with_density(embeddings, labels, output_path)
 
     print("\nVisualization complete!")
+    print(f"\nNote: Embeddings are cached at {cache_path}")
+    print("To re-extract embeddings, delete this cache file.")
 
 
 if __name__ == '__main__':
