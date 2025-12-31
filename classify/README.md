@@ -20,6 +20,7 @@ classify/
 │   └── ecapa_lang_id/
 ├── results/                # 可视化结果
 ├── scripts/                # 脚本文件
+│   ├── evaluate_test.py    # 评估测试
 │   ├── preprocess_data.py  # 数据预处理
 │   ├── train_ecapa.py      # 模型训练
 │   ├── train_config.yaml   # 训练配置
@@ -129,8 +130,8 @@ python inference.py <音频文件路径>
 - **Batch Size**：32
 - **Epochs**：30
 - **数据划分**：
-  - 训练集：72% (80% of 90%)
-  - 验证集：8% (10% of 90%)
+  - 训练集：72% (90% of 80%)
+  - 验证集：8% (10% of 80%)
   - 测试集：20%
 
 ## 可视化结果
